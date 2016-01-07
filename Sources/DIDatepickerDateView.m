@@ -8,145 +8,148 @@
 
 const CGFloat kDIDatepickerItemWidth = 46.;
 const CGFloat kDIDatepickerSelectionLineWidth = 51.;
+const CGFloat kDIDatepickerPaddingSize = 2.;
 
-
-@interface DIDatepickerCell ()
+@interface DIDatepickerDateView ()
 
 @property (strong, nonatomic) UILabel *dateLabel;
 @property (nonatomic, strong) UIView *selectionView;
-@property (nonatomic, strong) NSDateFormatter *dateFormatter;
 
 @end
 
 
-@implementation DIDatepickerCell
+@implementation DIDatepickerDateView
 
 - (id)initWithFrame:(CGRect)frame
 {
-    if(self = [super initWithFrame:frame]){
-        [self setBackgroundColor:[UIColor clearColor]];
-    }
-    
+    self = [super initWithFrame:frame];
+    if (!self) return nil;
+
+    [self setupViews];
+
     return self;
 }
 
-- (void)prepareForReuse
+- (void)setupViews
 {
-    [self setSelected:NO];
-    self.selectionView.alpha = 0.0f;
+    [self addTarget:self action:@selector(dateWasSelected) forControlEvents:UIControlEventTouchUpInside];
 }
-
-#pragma mark - Setters
 
 - (void)setDate:(NSDate *)date
 {
     _date = date;
-    
-    [self.dateFormatter setDateFormat:@"dd"];
-    NSString *dayFormattedString = [self.dateFormatter stringFromDate:date];
-    
-    [self.dateFormatter setDateFormat:@"EEE"];
-    NSString *dayInWeekFormattedString = [self.dateFormatter stringFromDate:date];
-    
-    [self.dateFormatter setDateFormat:@"MMMM"];
-    NSString *monthFormattedString = [[self.dateFormatter stringFromDate:date] uppercaseString];
-    
-    NSMutableAttributedString *dateString = [[NSMutableAttributedString alloc] initWithString:[NSString stringWithFormat:@"%@ %@\n%@", dayFormattedString, [dayInWeekFormattedString uppercaseString], monthFormattedString]];
-    
+
+    NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
+
+    [dateFormatter setDateFormat:@"dd"];
+    NSString *dayFormattedString = [dateFormatter stringFromDate:date];
+
+    [dateFormatter setDateFormat:@"EEE"];
+    NSString *dayInWeekFormattedString = [dateFormatter stringFromDate:date];
+
+    NSMutableAttributedString *dateString = [[NSMutableAttributedString alloc] initWithString:[NSString stringWithFormat:@"%@\n%@", dayFormattedString, [dayInWeekFormattedString uppercaseString]]];
+
     [dateString addAttributes:@{
-                                NSFontAttributeName: [UIFont fontWithName:@"HelveticaNeue-Thin" size:20],
-                                NSForegroundColorAttributeName: [UIColor blackColor]
-                                } range:NSMakeRange(0, dayFormattedString.length)];
-    
+                                NSFontAttributeName: [UIFont systemFontOfSize:18],
+                                NSForegroundColorAttributeName: [UIColor whiteColor]
+                                }
+                        range:NSMakeRange(0, dayFormattedString.length)];
+
     [dateString addAttributes:@{
-                                NSFontAttributeName: [UIFont fontWithName:@"HelveticaNeue-Thin" size:8],
-                                NSForegroundColorAttributeName: [UIColor blackColor]
-                                } range:NSMakeRange(dayFormattedString.length + 1, dayInWeekFormattedString.length)];
-    
-    [dateString addAttributes:@{
-                                NSFontAttributeName: [UIFont fontWithName:@"HelveticaNeue-Light" size:8],
-                                NSForegroundColorAttributeName: [UIColor colorWithRed:153./255. green:153./255. blue:153./255. alpha:1.]
-                                } range:NSMakeRange(dateString.string.length - monthFormattedString.length, monthFormattedString.length)];
-    
+                                NSFontAttributeName: [UIFont systemFontOfSize:7],
+                                NSForegroundColorAttributeName: [UIColor whiteColor]
+                                }
+                        range:NSMakeRange(dayFormattedString.length + 1, dayInWeekFormattedString.length)];
+
     if ([self isWeekday:date]) {
         [dateString addAttribute:NSFontAttributeName
-                           value:[UIFont fontWithName:@"HelveticaNeue-Medium" size:8]
+                           value:[UIFont boldSystemFontOfSize:7]
                            range:NSMakeRange(dayFormattedString.length + 1, dayInWeekFormattedString.length)];
     }
-    
+
     self.dateLabel.attributedText = dateString;
 }
 
-- (void)setItemSelectionColor:(UIColor *)itemSelectionColor
-{
-    self.selectionView.backgroundColor = itemSelectionColor;
-}
-
-- (void)setHighlighted:(BOOL)highlighted
-{
-    [super setHighlighted:highlighted];
+- (void)setLabelState {
     
-    self.selectionView.hidden = NO;
-    if (highlighted) {
-        self.selectionView.alpha = self.isSelected ? 1 : .5;
-    } else {
-        self.selectionView.alpha = self.isSelected ? 1 : 0;
-    }
+    // Background color
+    _dateLabel.backgroundColor = (_isSelected) ? self.selectionView.backgroundColor : [UIColor clearColor];
+    
+    // String color
+    NSMutableAttributedString *attrStr = [[NSMutableAttributedString alloc] initWithAttributedString:_dateLabel.attributedText];
+    (_isSelected) ? [attrStr addAttribute:NSForegroundColorAttributeName value:[UIColor whiteColor] range:NSMakeRange(0, _dateLabel.attributedText.length)] : [attrStr addAttribute:NSForegroundColorAttributeName value:[UIColor blackColor] range:NSMakeRange(0, _dateLabel.attributedText.length)] ;
+    _dateLabel.attributedText = attrStr;
 }
 
-- (void)setSelected:(BOOL)selected
+- (void)setIsSelected:(BOOL)isSelected
 {
-    [super setSelected:selected];
-    self.selectionView.alpha = (selected)?1.0f:0.0f;
+    _isSelected = isSelected;
+    
+    [self setLabelState];
 }
-
-#pragma mark - Getters
 
 - (UILabel *)dateLabel
 {
     if (!_dateLabel) {
-        _dateLabel = [[UILabel alloc] initWithFrame:self.bounds];
+        _dateLabel = [[UILabel alloc] initWithFrame:CGRectMake(self.bounds.origin.x + kDIDatepickerPaddingSize, self.bounds.origin.y + kDIDatepickerPaddingSize, self.bounds.size.width - 2*kDIDatepickerPaddingSize, self.bounds.size.height - 2*kDIDatepickerPaddingSize)];
         _dateLabel.numberOfLines = 2;
         _dateLabel.textAlignment = NSTextAlignmentCenter;
+        _dateLabel.backgroundColor = self.selectionView.backgroundColor;
+        _dateLabel.layer.cornerRadius = _dateLabel.frame.size.width * 0.5f;
+        _dateLabel.layer.masksToBounds = YES;
         [self addSubview:_dateLabel];
     }
-    
+
     return _dateLabel;
 }
 
 - (UIView *)selectionView
 {
     if (!_selectionView) {
-        _selectionView = [[UIView alloc] initWithFrame:CGRectMake((CGRectGetWidth(self.frame) - 51) / 2, CGRectGetHeight(self.frame) - 3, 51, 3)];
-        _selectionView.alpha = 0.0f;
+        _selectionView = [[UIView alloc] initWithFrame:CGRectMake((self.frame.size.width - 51) / 2, self.frame.size.height - 3, 51, 3)];
+        _selectionView.alpha = 0;
         _selectionView.backgroundColor = [UIColor colorWithRed:242./255. green:93./255. blue:28./255. alpha:1.];
         [self addSubview:_selectionView];
     }
-    
+
     return _selectionView;
 }
 
-- (NSDateFormatter *)dateFormatter
+- (void)setItemSelectionColor:(UIColor *)itemSelectionColor
 {
-    if(!_dateFormatter){
-        _dateFormatter = [[NSDateFormatter alloc] init];
-    }
-    
-    return _dateFormatter;
+    self.selectionView.backgroundColor = itemSelectionColor;
+    self.dateLabel.backgroundColor = self.selectionView.backgroundColor;
 }
 
-#pragma mark - Helper Methods
+- (void)setHighlighted:(BOOL)highlighted
+{
+    [super setHighlighted:highlighted];
+    
+    self.dateLabel.alpha = self.isSelected ? 1 : .5;
+    
+    [self setLabelState];
+}
+
+
+#pragma mark Other methods
 
 - (BOOL)isWeekday:(NSDate *)date
 {
     NSInteger day = [[[NSCalendar currentCalendar] components:NSWeekdayCalendarUnit fromDate:date] weekday];
-    
+
     const NSInteger kSunday = 1;
     const NSInteger kSaturday = 7;
-    
+
     BOOL isWeekdayResult = day == kSunday || day == kSaturday;
-    
+
     return isWeekdayResult;
+}
+
+- (void)dateWasSelected
+{
+    self.isSelected = YES;
+
+    [self sendActionsForControlEvents:UIControlEventValueChanged];
 }
 
 @end
