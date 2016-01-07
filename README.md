@@ -1,11 +1,13 @@
 DIDatepicker
 ============
 
-Rewritten, working for iOS 9.
+Original, with a single line and overflowing weekdays:
+![demo](screenshots/original.png)
 
-![demo](screenshots/screenshot.png)
+Updated, with Sunrise style calendar and simpler titles:
+![demo](screenshots/updated.png)
 
-Sample usage is available in the `DIViewController`.
+Rewritten, working for iOS 9. Sample usage is available in the `DIViewController`.
 
 ## Requirements
 
